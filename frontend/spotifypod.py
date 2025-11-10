@@ -269,6 +269,7 @@ class NowPlayingFrame(tk.Frame):
                 self.progress_frame.create_image(self.midpoint, (self.frame_img.height() - 1)/2, image=self.frame_img)
                 self.inflated = True
         if not now_playing:
+            logging.debug("NowPlayingFrame.update_now_playing called with falsy now_playing")
             return
         self.track_label.set_text(now_playing['name'])
         artist = now_playing['artist']
@@ -491,10 +492,15 @@ def render_menu(app, menu_render):
     page.set_header(menu_render.header, menu_render.now_playing, menu_render.has_internet)
 
 def update_now_playing(now_playing):
-    frame = app.frames[NowPlayingFrame]
-    frame.update_now_playing(now_playing)
+    logging.debug("update_now_playing called with: %s", repr(now_playing))
+    try:
+        frame = app.frames[NowPlayingFrame]
+        frame.update_now_playing(now_playing)
+    except Exception:
+        log_exception("Exception in update_now_playing")
 
 def render_now_playing(app, now_playing_render):
+    logging.debug("render_now_playing called")
     app.show_frame(NowPlayingFrame)
     now_playing_render.subscribe(app, update_now_playing)
 
@@ -513,11 +519,20 @@ def onPlayPressed():
 
 def onSelectPressed():
     global page, app
+    logging.debug("onSelectPressed: current page = %s", type(page).__name__)
     if (not page.has_sub_page):
+        logging.debug("onSelectPressed: no sub page, ignoring")
         return
-    page.render().unsubscribe()
-    page = page.nav_select()
-    render(app, page.render())
+    try:
+        page.render().unsubscribe()
+        page = page.nav_select()
+        logging.debug("nav_select -> new page = %s", type(page).__name__)
+        render(app, page.render())
+    except Exception:
+        log_exception("Exception in onSelectPressed")
+    #page.render().unsubscribe()
+    #page = page.nav_select()
+    #render(app, page.render())
 
 def onBackPressed():
     global page, app
@@ -570,11 +585,14 @@ def app_main_loop():
         loop_count += 1
         if (loop_count >= 300):
             if (time.time() - last_interaction > SCREEN_TIMEOUT_SECONDS and screen_on):
+                logging.debug("screen_sleep() triggered by timeout")
                 screen_sleep()
             render(app, page.render())
             loop_count = 0
-    except:
-        pass
+    #except:
+        #pass
+    except Exception:
+        log_exception("Error in app_main_loop")
     finally:
         app.after(2, app_main_loop)
 

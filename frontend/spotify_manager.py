@@ -214,6 +214,7 @@ def parse_show(show):
         episodes.append(UserEpisode(episode['name'], publisher, show['name'], episode['uri']))
     return (UserShow(show['name'], publisher, len(episodes), show['uri']), episodes)
 
+
 def refresh_data():
     DATASTORE.clear()
     results = sp.current_user_saved_tracks(limit=pageSize, offset=0)
