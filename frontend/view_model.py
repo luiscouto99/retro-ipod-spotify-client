@@ -1,6 +1,6 @@
 import spotify_manager
 import re as re
-from functools import lru_cache 
+from functools import lru_cache
 
 MENU_PAGE_SIZE = 6
 
@@ -14,7 +14,8 @@ LINE_NORMAL = 0
 LINE_HIGHLIGHT = 1
 LINE_TITLE = 2
 
-spotify_manager.refresh_devices()
+#spotify_manager.refresh_devices()
+spotify_manager.refresh_data()
 
 class LineItem():
     def __init__(self, title = "", line_type = LINE_NORMAL, show_arrow = False):
@@ -71,7 +72,7 @@ class NowPlayingCommand():
     def __init__(self, runnable = lambda:()):
         self.has_run = False
         self.runnable = runnable
-    
+
     def run(self):
         self.has_run = True
         self.runnable()
@@ -124,7 +125,7 @@ class SearchPage():
         if len(self.live_render.query) > 15:
             return
         active_char = ' ' if self.live_render.active_char == 26 \
-          else chr(self.live_render.active_char + ord('a')) 
+          else chr(self.live_render.active_char + ord('a'))
         self.live_render.query += active_char
         self.live_render.refresh()
 
@@ -182,13 +183,13 @@ class NowPlayingPage():
         self.live_render.refresh()
 
     def nav_prev(self):
-        spotify_manager.run_async(lambda: self.play_previous()) 
+        spotify_manager.run_async(lambda: self.play_previous())
 
     def nav_next(self):
-        spotify_manager.run_async(lambda: self.play_next()) 
+        spotify_manager.run_async(lambda: self.play_next())
 
     def nav_play(self):
-        spotify_manager.run_async(lambda: self.toggle_play()) 
+        spotify_manager.run_async(lambda: self.toggle_play())
 
     def nav_up(self):
         pass
@@ -224,14 +225,14 @@ class MenuPage():
         return None
 
     def nav_prev(self):
-        spotify_manager.run_async(lambda: spotify_manager.play_previous()) 
+        spotify_manager.run_async(lambda: spotify_manager.play_previous())
 
     def nav_next(self):
-        spotify_manager.run_async(lambda: spotify_manager.play_next()) 
+        spotify_manager.run_async(lambda: spotify_manager.play_next())
 
     def nav_play(self):
-        spotify_manager.run_async(lambda: spotify_manager.toggle_play()) 
-    
+        spotify_manager.run_async(lambda: spotify_manager.toggle_play())
+
     def get_index_jump_up(self):
         return 1
 
@@ -286,7 +287,7 @@ class ShowsPage(MenuPage):
 
     def get_title(self):
         return "Podcasts"
-    
+
     def get_content(self):
         return spotify_manager.DATASTORE.getAllSavedShows()
 
@@ -302,7 +303,7 @@ class PlaylistsPage(MenuPage):
         super().__init__(self.get_title(), previous_page, has_sub_page=True)
         self.playlists = self.get_content()
         self.num_playlists = len(self.playlists)
-                
+
         self.playlists.sort(key=self.get_idx) # sort playlists to keep order as arranged in Spotify library
 
     def get_title(self):
@@ -339,7 +340,7 @@ class SearchResultsPage(MenuPage):
         super().__init__("Search Results", previous_page, has_sub_page=True)
         self.results = results
         tracks, albums, artists = len(results.tracks), len(results.albums), len(results.artists)
-        # Add 1 to each count (if > 0) to make room for section header line items 
+        # Add 1 to each count (if > 0) to make room for section header line items
         self.tracks = tracks + 1 if tracks > 0 else 0
         self.artists = artists + 1 if artists > 0 else 0
         self.albums = albums + 1 if albums > 0 else 0
@@ -403,7 +404,7 @@ class ArtistsPage(MenuPage):
         artist = spotify_manager.DATASTORE.getArtist(index)
         command = NowPlayingCommand(lambda: spotify_manager.play_artist(artist.uri))
         return NowPlayingPage(self, artist.name, command)
-    
+
 class SingleArtistPage(MenuPage):
     def __init__(self, artistName, previous_page):
         super().__init__(artistName, previous_page, has_sub_page=True)
@@ -515,17 +516,15 @@ class RootPage(MenuPage):
         ]
         self.index = 0
         self.page_start = 0
-    
+
     def get_pages(self):
         if (not spotify_manager.DATASTORE.now_playing):
             return self.pages[0:-1]
         return self.pages
-    
+
     def total_size(self):
         return len(self.get_pages())
 
     def page_at(self, index):
         return self.get_pages()[index]
-
-
     
