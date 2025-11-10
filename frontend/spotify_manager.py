@@ -1,5 +1,6 @@
 import spotipy
 import datastore
+import os
 from spotipy.oauth2 import SpotifyOAuth
 import threading
 import time
@@ -99,8 +100,16 @@ scope = "user-follow-read," \
 
 DATASTORE = datastore.Datastore()
 
-sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
-
+sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
+    client_id=os.getenv('SPOTIPY_CLIENT_ID'),
+    client_secret=os.getenv('SPOTIPY_CLIENT_SECRET'),
+    redirect_uri=os.getenv('SPOTIPY_REDIRECT_URI'),
+    scope=scope,
+    open_browser=False
+))
+print(sp.current_user()["display_name"], sp.current_user()["id"])
+devices = sp.devices()
+print(devices)
 
 pageSize = 50
 has_internet = False
@@ -144,17 +153,23 @@ def get_album(id):
         tracks.append(UserTrack(item['name'], artist, album, item['uri']))
     return (UserAlbum(results['name'], artist, len(tracks), results['uri']), tracks)
 
-def get_playlist_tracks(id):
+def get_playlist_tracks(playlist_id):
     tracks = []
-    results = sp.playlist_tracks(id, limit=pageSize)
-    while(results['next']):
-        for _, item in enumerate(results['items']):
-            track = item['track']
-            tracks.append(UserTrack(track['name'], track['artists'][0]['name'], track['album']['name'], track['uri']))
-        results = sp.next(results)
-    for _, item in enumerate(results['items']):
+    results = sp.playlist_items(playlist_id)
+    for item in results['items']:
         track = item['track']
-        tracks.append(UserTrack(track['name'], track['artists'][0]['name'], track['album']['name'], track['uri']))
+        if track is None:
+            continue  # skip unavailable tracks
+
+        artist_name = track['artists'][0]['name'] if track.get('artists') and len(track['artists']) > 0 else "Unknown"
+        album_name = track['album']['name'] if track.get('album') else "Unknown"
+
+        tracks.append(UserTrack(
+            track['name'],
+            artist_name,
+            album_name,
+            track['uri']
+        ))
     return tracks
 
 def get_album_tracks(id):
@@ -170,14 +185,18 @@ def get_album_tracks(id):
         tracks.append(UserTrack(track['name'], track['artists'][0]['name'], track['album']['name'], track['uri']))
     return tracks
 
+#def refresh_devices():
+#    results = sp.devices()
+#    DATASTORE.clearDevices()
+#    for _, item in enumerate(results['devices']):
+#        if "Spotifypod" in item['name']:
+#            print(item['name'])
+#            device = UserDevice(item['id'], item['name'], item['is_active'])
+#            DATASTORE.setUserDevice(device)
+
 def refresh_devices():
-    results = sp.devices()
-    DATASTORE.clearDevices()
-    for _, item in enumerate(results['devices']):
-        if "Spotifypod" in item['name']:
-            print(item['name'])
-            device = UserDevice(item['id'], item['name'], item['is_active'])
-            DATASTORE.setUserDevice(device)
+    device = UserDevice('1d0df609264c99d598881c5cc6fdac504a2ab6d1','Spotipod', True)
+    DATASTORE.setUserDevice(device)
 
 def parse_album(album):
     artist = album['artists'][0]['name']
